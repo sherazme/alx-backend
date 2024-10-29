@@ -1,19 +1,11 @@
 #!/usr/bin/env python3
-"""Hypermedia pagination """
-
+""" Add get_hyper method to Server class """
 import csv
-import math
-from typing import Dict, List, Tuple
-
-
-def index_range(page: int, page_size: int) -> Tuple[int, int]:
-    """ Retrieves the index range from given page and page size """
-
-    return ((page - 1) * page_size, ((page - 1) * page_size) + page_size)
+from typing import Dict, List, Tuple, Union
 
 
 class Server:
-    """ paginate database of popular baby names """
+    """ Server class to paginate database of popular baby names """
     DATA_FILE = "Popular_Baby_Names.csv"
 
     def __init__(self):
@@ -28,3 +20,33 @@ class Server:
             self.__dataset = dataset[1:]
 
         return self.__dataset
+
+    @staticmethod
+    def index_range(page: int, page_size: int) -> Tuple[int, int]:
+        """ Calculate start and end index range for page with page_size """
+        nextPageStartIndex = page * page_size
+        return nextPageStartIndex - page_size, nextPageStartIndex
+
+    def get_page(self, page: int = 1, page_size: int = 10) -> List[List]:
+        """ Get items for given page number """
+        assert type(page) == int and type(page_size) == int
+        assert page > 0 and page_size > 0
+        startIndex, endIndex = self.index_range(page, page_size)
+        return self.dataset()[startIndex:endIndex]
+
+    def get_hyper(self, page: int,
+                  page_size: int) -> Dict[str, Union[int, List[List], None]]:
+        """ dictionary of page_size page data next_page prev_page total_pages
+        """
+        data = self.get_page(page, page_size)
+        totalRows = len(self.dataset())
+        prev_page = page - 1 if page > 1 else None
+        next_page = page + 1
+        if self.index_range(page, page_size)[1] >= totalRows:
+            next_page = None
+        total_pages = totalRows / page_size
+        if total_pages % 1 != 0:
+            total_pages += 1
+        return {'page_size': len(data), 'page': page,
+                'data': data, 'next_page': next_page,
+                'prev_page': prev_page, 'total_pages': int(total_pages)}
